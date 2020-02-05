@@ -1,6 +1,7 @@
 package urlshort
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -9,7 +10,12 @@ import (
 
 type yamlOutput []struct {
 	Path string
-	Url  string
+	URL  string
+}
+
+type jsonOutput []struct {
+	Path string `json:"path"`
+	URL  string `json:"url"`
 }
 
 // MapHandler will return an http.HandlerFunc (which also
@@ -46,11 +52,33 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 		path := req.URL.String()
 		for _, urlMap := range parsedYaml {
 			if urlMap.Path == path {
-				http.Redirect(res, req, urlMap.Url, 301)
+				http.Redirect(res, req, urlMap.URL, 301)
 				return
 			}
 		}
 		fallback.ServeHTTP(res, req)
 		return
 	}), nil
+}
+
+// JSONHandler is a json handler
+func JSONHandler(js []byte, fallback http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		path := req.URL.String()
+
+		var output jsonOutput
+
+		err := json.Unmarshal(js, &output)
+		if err != nil {
+			panic(err)
+		}
+		for _, obj := range output {
+			if obj.Path == path {
+				http.Redirect(res, req, obj.URL, 301)
+				return
+			}
+		}
+		fallback.ServeHTTP(res, req)
+		return
+	})
 }
