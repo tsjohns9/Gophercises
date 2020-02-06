@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Create Your Own Adventure</title>
+  </head>
+  <body>
+    <h2>
+      {{.Title}}
+    </h2>
+    <div>
+      {{range $i, $e := .Story}}
+      <p>
+        {{$e}}
+      </p>
+      {{end}}
+    </div>
+
+    <div>
+      {{range $i, $a := .Options}}
+      <p>
+        <a href="{{$a.Arc}}">
+          {{$a.Text}}
+        </a>
+      </p>
+      {{end}}
+    </div>
+  </body>
+</html>
