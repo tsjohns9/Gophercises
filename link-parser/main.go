@@ -36,12 +36,6 @@ func main() {
 		fmt.Printf("Text: %+v\n", link.Text)
 		fmt.Println("  ")
 	}
-
-	for _, l := range Links {
-		fmt.Printf("%+v\n", l.Href)
-		fmt.Printf("%+v\n", l.Text)
-		fmt.Println(" ")
-	}
 }
 
 func readFile(file string) string {
@@ -53,15 +47,21 @@ func readFile(file string) string {
 	return string(bytes)
 }
 
+// Receives an html node and returns all the plain text it contains
+// html nodes are trees. Recurse through all sub nodes to collect a slice of Link structs from the <a> tags
 func parseNode(node *html.Node, links *[]Link) string {
+	// all text collected from the original node passd into the function
 	var text string
 
 	if node != nil {
-		if node.Data == "a" {
+		// parse the a tag to collect the links
+		if node.Type == html.ElementNode && node.Data == "a" {
 			parseATag(node, links)
 		}
-		if node.FirstChild == nil {
 
+		// if there is no child, then this is the end of the branch.
+		if node.FirstChild == nil {
+			// only collect actual text content that is trimmed of white space
 			if node.Type == html.TextNode {
 				trimmed := strings.TrimSpace(node.Data)
 				if len(trimmed) > 0 {
@@ -84,6 +84,7 @@ func parseNode(node *html.Node, links *[]Link) string {
 	return text
 }
 
+// Parses a dom node to retrieve the href and text of an <a> tag
 func parseATag(node *html.Node, links *[]Link) {
 	link := Link{}
 	link.Href = getHref(node.Attr)
@@ -91,12 +92,14 @@ func parseATag(node *html.Node, links *[]Link) {
 	*links = append(*links, link)
 }
 
+// pulls the href attribute of of an <a> tag
 func getHref(attrs []html.Attribute) string {
-	var s string
+	var href string
 	for _, attr := range attrs {
 		if attr.Key == "href" {
-			s = attr.Val
+			href = attr.Val
+			break
 		}
 	}
-	return s
+	return href
 }
