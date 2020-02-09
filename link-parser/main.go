@@ -28,7 +28,14 @@ func main() {
 	if e != nil {
 		panic(e)
 	}
-	parseNode(document)
+	var links []Link
+	parseNode(document, &links)
+
+	for _, link := range links {
+		fmt.Printf("Href: %+v\n", link.Href)
+		fmt.Printf("Text: %+v\n", link.Text)
+		fmt.Println("  ")
+	}
 
 	for _, l := range Links {
 		fmt.Printf("%+v\n", l.Href)
@@ -46,38 +53,42 @@ func readFile(file string) string {
 	return string(bytes)
 }
 
-func parseNode(node *html.Node) string {
-	if node != nil {
-		if node.FirstChild == nil {
-			x := strings.TrimSpace(node.Data)
-			if len(x) > 0 {
-				return x
-			}
-		}
-		if node.NextSibling != nil {
-			parseNode(node.NextSibling)
-		}
-		if node.FirstChild != nil {
-			if node.Data == "a" {
-				parseLink(node)
-			} else {
-				parseNode(node.FirstChild)
-			}
-		}
-	}
+func parseNode(node *html.Node, links *[]Link) string {
+	var text string
 
-	return ""
+	if node != nil {
+		if node.Data == "a" {
+			parseATag(node, links)
+		}
+		if node.FirstChild == nil {
+
+			if node.Type == html.TextNode {
+				trimmed := strings.TrimSpace(node.Data)
+				if len(trimmed) > 0 {
+					text = text + trimmed
+				}
+			}
+		}
+
+		if node.NextSibling != nil {
+			data := parseNode(node.NextSibling, links)
+			text = text + data
+		}
+
+		if node.FirstChild != nil {
+			data := parseNode(node.FirstChild, links)
+			text = text + data
+		}
+
+	}
+	return text
 }
 
-func parseLink(node *html.Node) {
-	Href := getHref(node.Attr)
-	Text := parseNode(node.FirstChild)
-	link := Link{
-		Href,
-		Text,
-	}
-	// fmt.Println("Link:", link)
-	Links = append(Links, link)
+func parseATag(node *html.Node, links *[]Link) {
+	link := Link{}
+	link.Href = getHref(node.Attr)
+	link.Text = parseNode(node.FirstChild, links)
+	*links = append(*links, link)
 }
 
 func getHref(attrs []html.Attribute) string {
@@ -89,7 +100,3 @@ func getHref(attrs []html.Attribute) string {
 	}
 	return s
 }
-
-// Ex: FirstChild == html
-// FirstChild.Data == head
-// FirstChild.NextSibling.Data == body
