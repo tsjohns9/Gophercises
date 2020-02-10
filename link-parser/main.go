@@ -3,33 +3,42 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"strings"
 
-	"golang.org/x/net/html"
+	"./parse"
 )
 
-// Link is a link
-type Link struct {
-	Href string
-	Text string
-}
-
-// Links are links
-var Links []Link
-
 func main() {
-	fileName := flag.String("file", "example1.html", "file to parse")
+	fileName := flag.String("file", "", "file to parse")
+	url := flag.String("url", "", "url to html file to parse")
 	flag.Parse()
-	content := readFile(*fileName)
-	r := strings.NewReader(content)
 
-	document, e := html.Parse(r)
+	var r io.Reader
+
+	// read from file
+	if len(*fileName) > 0 {
+		content := readFile(*fileName)
+		r = strings.NewReader(content)
+	}
+
+	// fetch from url
+	if len(*url) > 0 {
+		data, err := fetch(*url)
+		if err != nil {
+			panic(err)
+		}
+		// ioutil.WriteFile("", data, 0666)
+		r = strings.NewReader(string(data))
+	}
+
+	links, e := parse.Parse(r)
+
 	if e != nil {
 		panic(e)
 	}
-	var links []Link
-	parseNode(document, &links)
 
 	for _, link := range links {
 		fmt.Printf("Href: %+v\n", link.Href)
@@ -43,63 +52,17 @@ func readFile(file string) string {
 	if e != nil {
 		panic(e)
 	}
-
 	return string(bytes)
 }
 
-// Receives an html node and returns all the plain text it contains
-// html nodes are trees. Recurse through all sub nodes to collect a slice of Link structs from the <a> tags
-func parseNode(node *html.Node, links *[]Link) string {
-	// all text collected from the original node passd into the function
-	var text string
-
-	if node != nil {
-		// parse the a tag to collect the links
-		if node.Type == html.ElementNode && node.Data == "a" {
-			parseATag(node, links)
-		}
-
-		// if there is no child, then this is the end of the branch.
-		if node.FirstChild == nil {
-			// only collect actual text content that is trimmed of white space
-			if node.Type == html.TextNode {
-				trimmed := strings.TrimSpace(node.Data)
-				if len(trimmed) > 0 {
-					text = text + trimmed
-				}
-			}
-		}
-
-		if node.NextSibling != nil {
-			data := parseNode(node.NextSibling, links)
-			text = text + data
-		}
-
-		if node.FirstChild != nil {
-			data := parseNode(node.FirstChild, links)
-			text = text + data
-		}
-
+func fetch(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
 	}
-	return text
-}
-
-// Parses a dom node to retrieve the href and text of an <a> tag
-func parseATag(node *html.Node, links *[]Link) {
-	link := Link{}
-	link.Href = getHref(node.Attr)
-	link.Text = parseNode(node.FirstChild, links)
-	*links = append(*links, link)
-}
-
-// pulls the href attribute of of an <a> tag
-func getHref(attrs []html.Attribute) string {
-	var href string
-	for _, attr := range attrs {
-		if attr.Key == "href" {
-			href = attr.Val
-			break
-		}
+	bytes, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		return nil, err
 	}
-	return href
+	return bytes, nil
 }
