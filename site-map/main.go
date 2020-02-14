@@ -37,7 +37,7 @@ func main() {
 
 	// returns an array of all urls collected from the initial url
 	// up to the specified depth
-	urls := bfs(*url, *depth)
+	urls := bfs(removeTrailingSlash(*url), *depth)
 
 	var locations []loc
 
@@ -56,13 +56,23 @@ func main() {
 }
 
 func bfs(domain string, depth int) []string {
-	var arr []string
+	seen := make(map[string]string)
+	notSeen := make(map[string]string)
+	notSeen[domain] = domain
 	for i := 0; i < depth; i++ {
-		res := fetchAndParse(removeTrailingSlash(domain))
-		for _, url := range res {
-			arr = append(arr, url)
-			arr = append(arr, bfs(url, depth-1)...)
+		for _, url := range notSeen {
+			if _, ok := seen[url]; ok {
+				continue
+			}
+			seen[url] = url
+			for _, link := range fetchAndParse(url, domain) {
+				notSeen[link] = removeTrailingSlash(link)
+			}
 		}
+	}
+	var arr []string
+	for url := range seen {
+		arr = append(arr, url)
 	}
 	return arr
 }
@@ -96,7 +106,7 @@ func isValidLink(prefix string) func(Link) bool {
 	}
 }
 
-func fetchAndParse(domain string) []string {
+func fetchAndParse(domain string, prefix string) []string {
 	bytes, err := fetch(domain)
 	if err != nil {
 		panic(err)
@@ -110,15 +120,18 @@ func fetchAndParse(domain string) []string {
 	if err != nil {
 		panic(err)
 	}
-	filteredLinks := filter(setPrefix(links, domain), isValidLink(domain))
+
+	filteredLinks := filter(setPrefix(links, prefix), isValidLink(prefix))
 	return filteredLinks
 }
 
 func setPrefix(links []Link, prefix string) []Link {
 	var withPrefix []Link
 	for _, link := range links {
-		switch {
-		case strings.HasPrefix(link.Href, "/"):
+		if strings.HasPrefix(link.Href, "//") {
+			continue
+		}
+		if strings.HasPrefix(link.Href, "/") {
 			link.Href = prefix + link.Href
 			withPrefix = append(withPrefix, link)
 		}
@@ -130,6 +143,5 @@ func removeTrailingSlash(domain string) string {
 	if strings.HasSuffix(domain, "/") {
 		domain = domain[:len(domain)-1]
 	}
-	fmt.Println("domain", domain)
 	return domain
 }
