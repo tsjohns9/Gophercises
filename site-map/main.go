@@ -134,6 +134,8 @@ func setPrefix(links []Link, prefix string) []Link {
 		if strings.HasPrefix(link.Href, "/") {
 			link.Href = prefix + link.Href
 			withPrefix = append(withPrefix, link)
+		} else if strings.HasPrefix(link.Href, "http") {
+			withPrefix = append(withPrefix, link)
 		}
 	}
 	return withPrefix
