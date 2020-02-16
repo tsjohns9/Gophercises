@@ -93,6 +93,7 @@ func fetch(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	bytes, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		return nil, err
