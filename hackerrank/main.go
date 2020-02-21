@@ -13,11 +13,27 @@ func camelcase(s string) int32 {
 }
 
 func main() {
-	word := flag.String("word", "", "camelCase word")
+	prob := flag.String("problem", "camelCase", "camelCase or caesarCipher")
+	word := flag.String("word", "", "Word for the challenge")
 	flag.Parse()
+
 	if *word == "" {
-		fmt.Println("A camelCase word is required")
+		fmt.Println("A word is required for the challenge")
 		return
 	}
-	fmt.Println(camelcase(*word))
+
+	if *prob == "camelCase" {
+		fmt.Println(camelcase(*word))
+	}
+	if *prob == "caesarCipher" {
+		fmt.Println(caesarCipher(*word, int32(4)))
+	}
+}
+
+func caesarCipher(s string, k int32) string {
+	var str string
+	for _, ch := range s {
+		fmt.Println(ch)
+	}
+	return str
 }
