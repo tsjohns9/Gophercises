@@ -2,16 +2,23 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
+	"../db"
 	"github.com/spf13/cobra"
 )
 
-// doCmd represents the do command
 var doCmd = &cobra.Command{
 	Use:   "do",
 	Short: "Execute a task",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("do called")
+		taskNumString := strings.Join(args, " ")
+		taskNum, _ := strconv.Atoi(taskNumString)
+		if err := db.Delete(taskNum); err != nil {
+			panic(err)
+		}
+		fmt.Println("Task completed")
 	},
 }
 
