@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -12,8 +13,9 @@ var taskBucket = []byte("tasks")
 
 // Task is a task
 type Task struct {
-	Key   int
-	Value string
+	Key       int
+	Value     string
+	Completed bool
 }
 
 var db *bolt.DB
@@ -40,8 +42,9 @@ func Create(task string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(taskBucket)
 		key, _ := b.NextSequence()
-		num := intToBytes(key)
-		return b.Put(num, []byte(task))
+		num := itob(key)
+		mItem := marshal(int(key), task, false)
+		return b.Put(num, mItem)
 	})
 
 }
@@ -57,8 +60,8 @@ func List() ([]Task, error) {
 		c := b.Cursor()
 
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			data := binary.BigEndian.Uint64(k)
-			tasks = append(tasks, Task{Key: int(data), Value: string(v)})
+			item := unmarshal(v)
+			tasks = append(tasks, item)
 		}
 
 		return nil
@@ -68,16 +71,43 @@ func List() ([]Task, error) {
 
 // Delete removes an item by key
 func Delete(key int) error {
-
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(taskBucket)
-		bts := intToBytes(uint64(key))
+		bts := itob(uint64(key))
 		return b.Delete(bts)
 	})
 }
 
-func intToBytes(num uint64) []byte {
+// Complete marks a task as completed
+func Complete(key int) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(taskBucket)
+		btsInt := itob(uint64(key))
+		valueInBytes := bucket.Get(btsInt)
+		task := unmarshal(valueInBytes)
+		mItem := marshal(key, task.Value, true)
+		return bucket.Put(btsInt, mItem)
+	})
+}
+
+func itob(num uint64) []byte {
 	bts := make([]byte, 8)
 	binary.BigEndian.PutUint64(bts, num)
 	return bts
+}
+
+func unmarshal(value []byte) Task {
+	var item Task
+	json.Unmarshal(value, &item)
+	return item
+}
+
+func marshal(key int, value string, completed bool) []byte {
+	item := Task{
+		Key:       key,
+		Value:     value,
+		Completed: completed,
+	}
+	js, _ := json.Marshal(item)
+	return js
 }

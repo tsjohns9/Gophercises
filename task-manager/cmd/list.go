@@ -21,7 +21,7 @@ var listCmd = &cobra.Command{
 		}
 		fmt.Println("You have the following tasks:")
 		for _, task := range tasks {
-			fmt.Printf("%d. %s\n", task.Key, task.Value)
+			fmt.Printf("%d. %s - Completed: %t \n", task.Key, task.Value, task.Completed)
 		}
 	},
 }

@@ -11,14 +11,19 @@ import (
 
 var doCmd = &cobra.Command{
 	Use:   "do",
-	Short: "Execute a task",
+	Short: "Mark a task as completed",
 	Run: func(cmd *cobra.Command, args []string) {
+		var err error
 		taskNumString := strings.Join(args, " ")
-		taskNum, _ := strconv.Atoi(taskNumString)
-		if err := db.Delete(taskNum); err != nil {
+		taskNum, err := strconv.Atoi(taskNumString)
+		if err != nil {
+			fmt.Printf("A number is required to complete a task. Received %s\n", taskNumString)
+			return
+		}
+		if err = db.Complete(taskNum); err != nil {
 			panic(err)
 		}
-		fmt.Println("Task completed")
+		fmt.Println("Task marked as completed")
 	},
 }
 
