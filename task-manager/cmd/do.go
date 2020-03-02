@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"../db"
 	"github.com/spf13/cobra"
+	"github.com/tsjohns9/gophercises/task-manager/db"
 )
 
 var doCmd = &cobra.Command{

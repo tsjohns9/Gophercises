@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"./cmd"
+	"github.com/tsjohns9/gophercises/task-manager/cmd"
 )
 
 func main() {

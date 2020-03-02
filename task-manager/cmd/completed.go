@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"../db"
 	"github.com/spf13/cobra"
+	"github.com/tsjohns9/gophercises/task-manager/db"
 )
 
 var completedCmd = &cobra.Command{
