@@ -50,6 +50,10 @@ type Card struct {
 
 var suits = [...]Suit{Spade, Diamond, Club, Heart}
 
+func absRank(c Card) int {
+	return int(c.Suit)*int(King) + int(c.Rank)
+}
+
 func (c Card) String() string {
 	if c.Suit == Joker {
 		return c.Suit.String()
@@ -116,6 +120,28 @@ func AddJoker(n int) func([]Card) []Card {
 	}
 }
 
-func absRank(c Card) int {
-	return int(c.Suit)*int(King) + int(c.Rank)
+// Filter filters the deck of cards based on the provided func
+func Filter(f func(card Card) bool) func([]Card) []Card {
+	return func(cards []Card) []Card {
+		var newDeck []Card
+		for _, c := range cards {
+			if !f(c) {
+				newDeck = append(newDeck, c)
+			}
+		}
+		return newDeck
+	}
+}
+
+// MultiDeck returns n decks
+func MultiDeck(n int) func([]Card) []Card {
+	return func(cards []Card) []Card {
+		var ret []Card
+
+		for i := 0; i < n; i++ {
+			ret = append(ret, cards...)
+		}
+
+		return ret
+	}
 }

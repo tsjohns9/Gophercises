@@ -43,3 +43,29 @@ func TestAddJoker(t *testing.T) {
 		t.Errorf("Error: Expected %d Jokers but received %d\n", jokerTotal, count)
 	}
 }
+
+func TestFilter(t *testing.T) {
+	filter := func(c Card) bool {
+		return c.Rank == Two
+	}
+
+	cards := NewDeck(Filter(filter))
+
+	if len(cards) != 48 {
+		t.Errorf("Error: Expected 48 cards but received %d\n", len(cards))
+	}
+
+	for _, c := range cards {
+		if c.Rank == Two {
+			t.Error("Error: Expected Cards with a rank of Two to be filtered.")
+			break
+		}
+	}
+}
+
+func TestDeck(t *testing.T) {
+	cards := NewDeck(MultiDeck(3))
+	if len(cards) != 52*3 {
+		t.Errorf("Error: Expected %d cards but received %d", 52*3, len(cards))
+	}
+}
