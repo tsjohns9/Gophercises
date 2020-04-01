@@ -1,23 +1,45 @@
 package main
 
 import (
-	"fmt"
+	"strings"
 
-	"github.com/tsjohns9/gophercises/blackjack"
+	"github.com/tsjohns9/gophercises/blackjack/blackjack"
+	"github.com/tsjohns9/gophercises/deck"
 )
 
-// AI implements the AI interface
-type AI struct{}
+// AI implements the Player interface
+type ai struct{}
+
+func (a ai) Bet() int {
+	return 1
+}
+
+func (a ai) Play(hand []deck.Card, dealer deck.Card) blackjack.Move {
+	pScore := blackjack.Score(hand...)
+	if pScore < 17 {
+		return blackjack.Hit
+	} else {
+		return blackjack.Stand
+	}
+}
+
+func (a ai) String(hand []deck.Card) string {
+	strs := make([]string, len(hand))
+	for i, c := range hand {
+		strs[i] = c.String()
+	}
+	return strings.Join(strs, ", ")
+}
 
 func main() {
-	var ai AI
-	// setup ai if you need to...
-
+	var player ai
 	opts := blackjack.Options{
-		Hands: 100,
-		Decks: 3,
+		Cash:   500,
+		Decks:  3,
+		Hands:  10,
+		MinBet: 10,
 	}
-	game := blackjack.New(opts)
-	winnings := game.Play(ai)
-	fmt.Println("Our AI won/lost:", winnings)
+
+	game := blackjack.NewGame(opts)
+	game.Play(player)
 }

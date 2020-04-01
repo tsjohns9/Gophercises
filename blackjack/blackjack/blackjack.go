@@ -55,6 +55,7 @@ type Game struct {
 // Play starts the game with the given player
 func (g Game) Play(player Player) {
 	for i := 0; i < g.hands; i++ {
+
 		fmt.Printf("Round %d:\n", i+1)
 		for g.turn == playerTurn {
 			move := player.Play(g.playerHand, g.dealerHand[0])
@@ -63,7 +64,6 @@ func (g Game) Play(player Player) {
 			}
 			err := move(&g)
 			if pScore := Score(g.playerHand...); pScore == 21 {
-				fmt.Println("~~~~~~~~~~~~~~~~~~~~~ You have 21 points.")
 				break
 			}
 			if err != nil {
