@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/tsjohns9/gophercises/quiet_hn/hn"
@@ -25,15 +26,36 @@ func main() {
 	tpl := template.Must(template.ParseFiles("./index.gohtml"))
 
 	http.HandleFunc("/", handler(numStories, tpl))
+
 	// Start the server
-	fmt.Println("Server running on http://localhost:3000")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 func handler(numStories int, tpl *template.Template) http.HandlerFunc {
+	sc := storyCache{
+		numStories: numStories,
+		duration:   6 * time.Second,
+	}
+
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		for {
+			temp := storyCache{
+				numStories: numStories,
+				duration:   6 * time.Second,
+			}
+			temp.stories()
+			sc.mutex.Lock()
+			sc.cache = temp.cache
+			sc.expiration = temp.expiration
+			sc.mutex.Unlock()
+			<-ticker.C
+		}
+	}()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		stories, err := getTopStories(numStories)
+		stories, err := sc.stories()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -48,6 +70,29 @@ func handler(numStories int, tpl *template.Template) http.HandlerFunc {
 			return
 		}
 	})
+}
+
+type storyCache struct {
+	numStories int
+	cache      []item
+	expiration time.Time
+	duration   time.Duration
+	mutex      sync.Mutex
+}
+
+func (sc *storyCache) stories() ([]item, error) {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
+	if time.Now().Sub(sc.expiration) < 0 {
+		return sc.cache, nil
+	}
+	stories, err := getTopStories(sc.numStories)
+	if err != nil {
+		return nil, err
+	}
+	sc.expiration = time.Now().Add(sc.duration)
+	sc.cache = stories
+	return sc.cache, nil
 }
 
 func getTopStories(numStories int) ([]item, error) {
@@ -67,29 +112,20 @@ func getTopStories(numStories int) ([]item, error) {
 }
 
 func getStories(ids []int) []item {
-	var client hn.Client
 	type result struct {
-		index int
-		item  item
-		err   error
+		idx  int
+		item item
+		err  error
 	}
-	cache := map[int]result{}
-
 	resultCh := make(chan result)
 	for i := 0; i < len(ids); i++ {
-		go func(index, id int) {
-			if res, isCached := cache[id]; isCached {
-				resultCh <- res
-			} else {
-				hnItem, err := client.GetItem(id)
-				if err != nil {
-					resultCh <- result{index: index, err: err}
-				}
-				r := result{index: index, item: parseHNItem(hnItem)}
-				cache[id] = r
-				fmt.Printf("%v\n", r)
-				resultCh <- r
+		go func(idx, id int) {
+			var client hn.Client
+			hnItem, err := client.GetItem(id)
+			if err != nil {
+				resultCh <- result{idx: idx, err: err}
 			}
+			resultCh <- result{idx: idx, item: parseHNItem(hnItem)}
 		}(i, ids[i])
 	}
 
@@ -98,7 +134,7 @@ func getStories(ids []int) []item {
 		results = append(results, <-resultCh)
 	}
 	sort.Slice(results, func(i, j int) bool {
-		return results[i].index < results[j].index
+		return results[i].idx < results[j].idx
 	})
 
 	var stories []item
